@@ -6,6 +6,12 @@ var mymap = L.map('mapid').setView([42.1510598276, 24.7412538528], 15);
 var begin = {lat: 0, lng: 0};
 var end = {lat: 0, lng: 0};
 var selectMode = null;
+var markerBegin = new L.marker({lat: 0, lng: 0}, {draggable: true}).addTo(mymap);
+var markerEnd = new L.marker({lat: 0, lng: 0}, {draggable: true}).addTo(mymap);
+var markerMiddle = null;
+var route = null;
+var layerUnion = null;
+var polygonUnion = null;
 
 L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token=' + MAPBOX_TOKEN, {
     maxZoom: 18,
@@ -15,11 +21,6 @@ L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token='
     id: 'mapbox.streets'
 }).addTo(mymap);
 
-var markerBegin = new L.marker({lat: 0, lng: 0}, {draggable: true}).addTo(mymap);
-var markerEnd = new L.marker({lat: 0, lng: 0}, {draggable: true}).addTo(mymap);
-var markerMiddle = null;
-var route = null;
-
 mymap.on('click', function (e) {
     if (selectMode === 'begin') {
         markerBegin.setLatLng(e.latlng);
@@ -27,6 +28,13 @@ mymap.on('click', function (e) {
     if (selectMode === 'end') {
         markerEnd.setLatLng(e.latlng);
     }
+});
+
+markerBegin.on('move', function(e) {
+    recalculateArea();
+});
+markerEnd.on('move', function(e) {
+    recalculateArea();
 });
 
 navigator.geolocation.getCurrentPosition(function(position) {
@@ -45,9 +53,7 @@ makeMarkerMiddle = function () {
     if (markerMiddle) {
         mymap.removeLayer(markerMiddle);
     }
-    var b = mymap.getBounds();
-    var polygon = L.polygon([b.getNorthEast(), b.getSouthEast(), b.getSouthWest(), b.getNorthWest()]);
-    var latLng = randomPointInPoly(polygon);
+    var latLng = randomPointInPoly(polygonUnion);
     markerMiddle = new L.marker(latLng, {draggable: true}).addTo(mymap);
 };
 
@@ -94,8 +100,30 @@ randomPointInPoly = function(polygon) {
     var inside = turf.inside(point, poly);
 
     if (inside) {
-        return L.latLng(lat, lng);
+        // why are lat and lng switched here?
+        return L.latLng(lng, lat);
     } else {
         return randomPointInPoly(polygon)
     }
+};
+
+recalculateArea = function () {
+    var polygonBegin = null;
+    var polygonEnd = null;
+
+    var from = turf.point([markerBegin.getLatLng().lng, markerBegin.getLatLng().lat]);
+    var to = turf.point([markerEnd.getLatLng().lng, markerEnd.getLatLng().lat]);
+    var distance = turf.distance(from, to);
+
+    var radius = distance * 0.75; // in km
+
+    polygonBegin = turf.circle(from, radius);
+    polygonEnd = turf.circle(to, radius);
+    var union = turf.union(polygonBegin, polygonEnd);
+    polygonUnion = L.polygon(union.geometry.coordinates[0]);
+
+    if (layerUnion) {
+        mymap.removeLayer(layerUnion);
+    }
+    layerUnion = L.geoJSON(union).addTo(mymap);
 };
