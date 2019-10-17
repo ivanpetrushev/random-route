@@ -127,3 +127,28 @@ recalculateArea = function () {
     }
     layerUnion = L.geoJSON(union).addTo(mymap);
 };
+
+fetchPoiNumbers = async function () {
+    var b = mymap.getBounds();
+    var bbox = b.getSouth() + ',' + b.getWest() + ',' + b.getNorth() + ',' + b.getEast();
+    var overpassUrl = 'https://overpass-api.de/api/interpreter';
+    var query = "[out:json][timeout:25];" +
+        "(" +
+        "  node['leisure'='park']("+bbox+");" +
+        "  way['leisure'='park']("+bbox+");" +
+        "  node['tourism'='viewpoint']("+bbox+");" +
+        "  way['tourism'='viewpoint']("+bbox+");" +
+        "  way['natural'='water']("+bbox+");" +
+        "  way['waterway']("+bbox+");" +
+        ");" +
+        "out body;" +
+        ">;" +
+        "out skel qt;";
+
+    var formData = new FormData();
+    formData.append('data', query);
+
+    var response = await fetch(overpassUrl+'?data='+query);
+    var json = await response.json();
+    console.log('json', json)
+};
