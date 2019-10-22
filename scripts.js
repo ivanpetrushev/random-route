@@ -16,7 +16,8 @@ var poiCategories = {
     'park': [],
     'viewpoint': [],
     'water': [],
-    'waterway': []
+    'waterway': [],
+    'supermarket': [],
 };
 var poiNodeMap = {};
 var tempLayers = [];
@@ -64,14 +65,17 @@ makeMarkerMiddle = function () {
 
     // add point in POI if any selected
     var poiPool = [];
-    var checked = $('input[type="checkbox"]:checked');
-    for (var i in checked) {
-        var tag = $(checked[i]).data('use');
+    var inputs = document.getElementsByTagName('input');
+    for (var i in inputs) {
+        if (! inputs[i].checked) {
+            continue;
+        }
+
+        var tag = inputs[i].name;
         for (var j in poiCategories[tag]) {
             poiPool.push(poiCategories[tag][j]);
         }
     }
-    console.log('poiPool', poiPool)
     clearTempLayers();
     var poiSelected = false;
     if (poiPool.length > 0) {
@@ -82,29 +86,36 @@ makeMarkerMiddle = function () {
             }
             var thisPoi = poiPool.pop();
             // find "center" point (if feature type = "way")
-            console.log('checking thisPoi', thisPoi);
             if (thisPoi.type === 'way') {
                 var poiCoordinates = [];
                 var poiLeaflet = [];
                 for (var j in thisPoi.nodes) {
                     var id = thisPoi.nodes[j];
-                    console.log('check node id', id)
-                    console.log('found in map', poiNodeMap[id])
                     poiLeaflet.push([poiNodeMap[id].lat, poiNodeMap[id].lon]); // leaflet-style coordinates
                     poiCoordinates.push([poiNodeMap[id].lon, poiNodeMap[id].lat]); // turf-style coordinates
                 }
                 var poiPolygon = L.polygon(poiCoordinates);
                 var poiPolygonLeaflet = L.polygon(poiLeaflet);
-                tempLayers.push(poiPolygonLeaflet.addTo(mymap)); // debug
+                // tempLayers.push(poiPolygonLeaflet.addTo(mymap)); // debug
                 var poiSelectedCenter = randomPointInPoly(poiPolygon);
-                console.log('testing poiSelectedCenter', poiSelectedCenter)
                 var point  = turf.point([poiSelectedCenter.lat, poiSelectedCenter.lng]);
-                tempLayers.push(L.marker(poiSelectedCenter).addTo(mymap)); // debug
+                // tempLayers.push(L.marker(poiSelectedCenter).addTo(mymap)); // debug
                 var poly   = poiPolygon.toGeoJSON();
                 var inside = turf.inside(point, poly);
                 if (inside) {
-                    poiSelected = poiSelectedCenter;
-                    console.log('poiSelected', poiSelected)
+                    // check if point is also inside the inner restricted area - polygonUnion
+                    var insideInner = turf.inside(point, polygonUnion.toGeoJSON());
+                    if (insideInner) {
+                        poiSelected = poiSelectedCenter;
+                    }
+                }
+            }
+            if (thisPoi.type === 'node') {
+                // check if point is also inside the inner restricted area - polygonUnion
+                var point  = turf.point([thisPoi.lat, thisPoi.lon]);
+                var insideInner = turf.inside(point, polygonUnion.toGeoJSON());
+                if (insideInner) {
+                    poiSelected = thisPoi;
                 }
             }
         }
@@ -204,6 +215,7 @@ fetchPoiNumbers = async function () {
         "  way['tourism'='viewpoint']("+bbox+");" +
         "  way['natural'='water']("+bbox+");" +
         "  way['waterway']("+bbox+");" +
+        "  node['shop'='supermarket']("+bbox+");" +
         ");" +
         "out body;" +
         ">;" +
@@ -214,14 +226,14 @@ fetchPoiNumbers = async function () {
 
     var response = await fetch(overpassUrl+'?data='+query);
     var json = await response.json();
-    console.log('json', json)
 
     // load poi lists
     poiCategories = {
         'park': [],
         'viewpoint': [],
         'water': [],
-        'waterway': []
+        'waterway': [],
+        'supermarket': [],
     };
     poiNodeMap = {};
     for (var i in json.elements) {
@@ -238,18 +250,20 @@ fetchPoiNumbers = async function () {
             if (json.elements[i].tags.waterway) {
                 poiCategories['waterway'].push(json.elements[i]);
             }
+            if (json.elements[i].tags.shop && json.elements[i].tags.shop === 'supermarket') {
+                poiCategories['supermarket'].push(json.elements[i]);
+            }
         }
         if (json.elements[i].type === 'node') {
             var id = json.elements[i].id;
             poiNodeMap[id] = {lat: json.elements[i].lat, lon: json.elements[i].lon};
         }
     }
-    console.log('poiCategories', poiCategories)
-    console.log('poiCategories length', poiCategories['park'].length)
-    $("input[data-use='park']").siblings('.number').html(poiCategories['park'].length);
-    $("input[data-use='viewpoint']").siblings('.number').html(poiCategories['viewpoint'].length);
-    $("input[data-use='water']").siblings('.number').html(poiCategories['water'].length);
-    $("input[data-use='waterway']").siblings('.number').html(poiCategories['waterway'].length);
+    document.getElementById('num_park').textContent = poiCategories['park'].length;
+    document.getElementById('num_viewpoint').textContent = poiCategories['viewpoint'].length;
+    document.getElementById('num_water').textContent = poiCategories['water'].length;
+    document.getElementById('num_waterway').textContent = poiCategories['waterway'].length;
+    document.getElementById('num_supermarket').textContent = poiCategories['supermarket'].length;
 };
 
 shuffle = function(a) {

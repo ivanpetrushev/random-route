@@ -19,19 +19,16 @@
             <button onClick="fetchPoiNumbers()">Load POIs</button>
             <button onClick="navigate()">Navigate</button>
             <div id="poi-list">
-                <label><input type="checkbox" data-use="park"/> Parks: <span class="number">0</span></label>
-                <label><input type="checkbox" data-use="viewpoint"/> Viewpoints: <span class="number">0</span></label>
-                <label><input type="checkbox" data-use="water"/> Water: <span class="number">0</span></label>
-                <label><input type="checkbox" data-use="waterway"/> Waterway: <span class="number">0</span></label>
+                <label><input type="checkbox" name="park"/> Parks: <span class="number" id="num_park">0</span></label>
+                <label><input type="checkbox" name="viewpoint"/> Viewpoints: <span class="number" id="num_viewpoint">0</span></label>
+                <label><input type="checkbox" name="water"/> Water: <span class="number" id="num_water">0</span></label>
+                <label><input type="checkbox" name="waterway"/> Waterway: <span class="number" id="num_waterway">0</span></label>
+                <label><input type="checkbox" name="supermarket"/> Supermarket: <span class="number" id="num_supermarket">0</span></label>
             </div>
         </div>
         <div id="mapid"></div>
     </div>
 
-    <script
-            src="https://code.jquery.com/jquery-3.3.0.min.js"
-            integrity="sha256-RTQy8VOmNlT6b2PIRur37p6JEBZUE7o8wPgMvu18MC4="
-            crossorigin="anonymous"></script>
     <script type="text/javascript" src="/turf.min.js" charset="utf-8"></script>
     <script src="https://unpkg.com/leaflet@1.5.1/dist/leaflet.js"
             integrity="sha512-GffPMF3RvMeYyc1LWMHtK8EbPv0iNZ8/oTtHPx9/cc2ILxQ+u905qIwdpULaqDkyBKgOaB57QTMg7ztg8Jm2Og=="
