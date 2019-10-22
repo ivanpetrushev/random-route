@@ -158,6 +158,9 @@ navigate = async function () {
         mymap.removeLayer(route);
     }
     route = L.geoJSON(json.features).addTo(mymap);
+
+    document.getElementById('result_meters').textContent = Math.round(json.features[0].properties.summary.distance / 100) / 10;
+    document.getElementById('result_minutes').textContent = parseInt(json.features[0].properties.summary.duration / 60);
 };
 
 randomPointInPoly = function(polygon) {
